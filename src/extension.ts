@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import { exec } from 'child_process';
 
 export function activate(context: vscode.ExtensionContext) {
-    let syncCommand = vscode.commands.registerCommand('extension.syncBranches', () => {
+    let syncCommand = vscode.commands.registerCommand('extension.syncBranches', async () => {
         const workspaceFolders = vscode.workspace.workspaceFolders;
         if (!workspaceFolders) {
             vscode.window.showErrorMessage('No workspace folder is open.');
@@ -10,86 +10,93 @@ export function activate(context: vscode.ExtensionContext) {
         }
 
         const workspacePath = workspaceFolders[0].uri.fsPath;
-
         const config = vscode.workspace.getConfiguration('syncBranches');
         const defaultSourceBranch = config.get('defaultSourceBranch', '');
         const defaultTargetBranch = config.get('defaultTargetBranch', '');
         const alwaysPromptForBranches = config.get('alwaysPromptForBranches', false);
 
-        const sourceBranchPromise = vscode.window.showInputBox({
+        const sourceBranch = await vscode.window.showInputBox({
             prompt: 'Enter source branch',
             value: alwaysPromptForBranches ? defaultSourceBranch : ''
         });
 
-        sourceBranchPromise.then(sourceBranch => {
-            if (!sourceBranch) {
-                vscode.window.showErrorMessage('Source branch is required');
-                return;
-            }
+        if (!sourceBranch) {
+            vscode.window.showErrorMessage('Source branch is required');
+            return;
+        }
 
-            const targetBranchPromise = vscode.window.showInputBox({
-                prompt: 'Enter target branch',
-                value: alwaysPromptForBranches ? defaultTargetBranch : ''
-            });
+        const targetBranch = await vscode.window.showInputBox({
+            prompt: 'Enter target branch',
+            value: alwaysPromptForBranches ? defaultTargetBranch : ''
+        });
 
-            targetBranchPromise.then(targetBranch => {
-                if (!targetBranch) {
-                    vscode.window.showErrorMessage('Target branch is required');
-                    return;
+        if (!targetBranch) {
+            vscode.window.showErrorMessage('Target branch is required');
+            return;
+        }
+
+        await vscode.window.withProgress({
+            location: vscode.ProgressLocation.Notification,
+            title: 'Syncing branches',
+            cancellable: false
+        }, async (progress) => {
+            const execPromise = (command: string): Promise<string> => {
+                return new Promise((resolve, reject) => {
+                    exec(command, { cwd: workspacePath }, (error, stdout, stderr) => {
+                        if (error) {
+                            reject(stderr);
+                        } else {
+                            resolve(stdout);
+                        }
+                    });
+                });
+            };
+
+            try {
+                // Check for changes and stash if needed
+                progress.report({ message: 'Checking for changes...' });
+                const status = await execPromise('git status --porcelain');
+                if (status) {
+                    progress.report({ message: 'Stashing changes...' });
+                    await execPromise('git stash');
                 }
 
-                const script = `
-                    #!/bin/bash
-                    cd "${workspacePath}"
-                    if [[ $(git status --porcelain) ]]; then
-                      echo "Stashing changes...\n"
-                      git stash
-                    else
-                      echo "No changes to stash.\n"
-                    fi
-                    echo "Checking out ${sourceBranch} branch...\n"
-                    git checkout ${sourceBranch}
-                    echo "Pulling latest changes from ${sourceBranch} branch...\n"
-                    git pull origin ${sourceBranch}
+                // Checkout and update source branch
+                progress.report({ message: `Checking out ${sourceBranch} branch...` });
+                await execPromise(`git checkout ${sourceBranch}`);
+                progress.report({ message: `Pulling latest changes from ${sourceBranch} branch...` });
+                await execPromise(`git pull origin ${sourceBranch}`);
 
-                    # Check if target branch exists
-                    if git rev-parse --verify ${targetBranch}; then
-                      echo "Checking out ${targetBranch} branch...\n"
-                      git checkout ${targetBranch}
-                      echo "Pulling latest changes from ${targetBranch} branch...\n"
-                      git pull origin ${targetBranch}
-                    else
-                      echo "Target branch ${targetBranch} does not exist. Creating it...\n"
-                      git checkout -b ${targetBranch}
-                    fi
+                // Handle target branch
+                const targetExists = await execPromise(`git rev-parse --verify ${targetBranch}`).catch(() => false);
+                if (targetExists) {
+                    progress.report({ message: `Checking out ${targetBranch} branch...` });
+                    await execPromise(`git checkout ${targetBranch}`);
+                    progress.report({ message: `Pulling latest changes from ${targetBranch} branch...` });
+                    await execPromise(`git pull origin ${targetBranch}`);
+                } else {
+                    progress.report({ message: `Creating ${targetBranch} branch...` });
+                    await execPromise(`git checkout -b ${targetBranch}`);
+                }
 
-                    # Check if sync branch exists
-                    if git rev-parse --verify ${targetBranch}-sync; then
-                      echo "Branch ${targetBranch}-sync already exists. Deleting it...\n"
-                      git branch -D ${targetBranch}-sync
-                    fi
+                // Handle sync branch
+                const syncBranchName = `${targetBranch}-sync`;
+                const syncExists = await execPromise(`git rev-parse --verify ${syncBranchName}`).catch(() => false);
+                if (syncExists) {
+                    progress.report({ message: `Deleting existing ${syncBranchName} branch...` });
+                    await execPromise(`git branch -D ${syncBranchName}`);
+                }
 
-                    echo "Creating a new branch ${targetBranch}-sync from ${targetBranch}...\n"
-                    git checkout -b ${targetBranch}-sync
+                progress.report({ message: `Creating ${syncBranchName} branch...` });
+                await execPromise(`git checkout -b ${syncBranchName}`);
 
-                    echo "Merging ${sourceBranch} branch into ${targetBranch}-sync...\n"
-                    if git merge ${sourceBranch}; then
-                      echo "Merge completed successfully.\n"
-                    else
-                      echo "Merge conflict detected. Please resolve conflicts and try again.\n"
-                      exit 1
-                    fi
+                progress.report({ message: `Merging ${sourceBranch} into ${syncBranchName}...` });
+                await execPromise(`git merge ${sourceBranch}`);
 
-                    echo "All done! Please resolve conflicts and create a pull request\n"
-                `;
-                exec(script, (error, stdout, stderr) => {
-                    if (error) {
-                        vscode.window.showErrorMessage(`Error: ${stderr}`);
-                    } else {
-                        vscode.window.showInformationMessage(stdout);
-                    }
-                });
-            });
+                vscode.window.showInformationMessage('Branch sync completed successfully! Please create a pull request.');
+            } catch (error) {
+                vscode.window.showErrorMessage(`Error: ${error}`);
+            }
         });
     });
 
