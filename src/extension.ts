@@ -107,7 +107,7 @@ export function activate(context: vscode.ExtensionContext) {
                 progress.report({ message: `Merging ${sourceBranch} into ${syncBranchName}...` });
                 await execPromise(`git merge ${sourceBranch}`);
 
-                vscode.window.showInformationMessage('Branch sync completed successfully! Please create a pull request.');
+                vscode.window.showInformationMessage('Branch sync completed successfully! Please push the branch and create a pull request.');
             } catch (error) {
                 vscode.window.showErrorMessage(`Error: ${error}`);
             }
