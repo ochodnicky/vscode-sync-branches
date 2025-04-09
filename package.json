@@ -2,14 +2,14 @@
   "name": "vscode-sync-branches",
   "displayName": "Sync branches",
   "description": "Sync branches in VSCode",
-  "version": "0.3.7",
+  "version": "0.3.8",
   "publisher": "Ondřej Ochodnický",
   "repository": {
     "type": "git",
     "url": "https://github.com/ochodnicky/vscode-sync-branches.git"
   },
   "engines": {
-    "vscode": "^1.98.0"
+    "vscode": "^1.96.2"
   },
   "categories": [
     "Other"
@@ -64,7 +64,7 @@
     "test": "vscode-test"
   },
   "devDependencies": {
-    "@types/vscode": "^1.98.0",
+    "@types/vscode": "^1.96.2",
     "@types/mocha": "^10.0.10",
     "@types/node": "20.x",
     "@typescript-eslint/eslint-plugin": "^8.28.0",
