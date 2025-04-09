@@ -13,6 +13,7 @@ export function activate(context: vscode.ExtensionContext) {
         const config = vscode.workspace.getConfiguration('syncBranches');
         const defaultSourceBranch = config.get('defaultSourceBranch', '');
         const defaultTargetBranch = config.get('defaultTargetBranch', '');
+        const targetBranchSuffix = config.get('targetBranchSuffix', '-sync');
         const alwaysPromptForBranches = config.get('alwaysPromptForBranches', false);
 
         const sourceBranch = await vscode.window.showInputBox({
@@ -80,7 +81,7 @@ export function activate(context: vscode.ExtensionContext) {
                 }
 
                 // Handle sync branch
-                const syncBranchName = `${targetBranch}-sync`;
+                const syncBranchName = `${targetBranch}${targetBranchSuffix}`;
                 const syncExists = await execPromise(`git rev-parse --verify ${syncBranchName}`).catch(() => false);
                 if (syncExists) {
                     progress.report({ message: `Deleting existing ${syncBranchName} branch...` });

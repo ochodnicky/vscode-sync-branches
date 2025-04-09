@@ -2,7 +2,7 @@
   "name": "vscode-sync-branches",
   "displayName": "Sync branches",
   "description": "Sync branches in VSCode",
-  "version": "0.3.5",
+  "version": "0.3.6",
   "publisher": "Ondřej Ochodnický",
   "repository": {
     "type": "git",
@@ -41,6 +41,11 @@
           "type": "string",
           "default": "",
           "description": "Default target branch for syncing. Leave empty to always prompt."
+        },
+        "syncBranches.targetBranchSuffix": {
+          "type": "string",
+          "default": "-sync",
+          "description": "Target branch suffix for syncing."
         },
         "syncBranches.alwaysPromptForBranches": {
           "type": "boolean",
