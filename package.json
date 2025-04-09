@@ -2,7 +2,7 @@
   "name": "vscode-sync-branches",
   "displayName": "Sync branches",
   "description": "Sync branches in VSCode",
-  "version": "0.3.6",
+  "version": "0.3.7",
   "publisher": "Ondřej Ochodnický",
   "repository": {
     "type": "git",

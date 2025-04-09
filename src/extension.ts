@@ -58,8 +58,21 @@ export function activate(context: vscode.ExtensionContext) {
                 progress.report({ message: 'Checking for changes...' });
                 const status = await execPromise('git status --porcelain');
                 if (status) {
-                    progress.report({ message: 'Stashing changes...' });
-                    await execPromise('git stash');
+                    const stashResponse = await vscode.window.showQuickPick(['Yes', 'No'], {
+                        placeHolder: 'Do you want to stash your changes?'
+                    });
+
+                    if (stashResponse === 'Yes') {
+                        const stashName = await vscode.window.showInputBox({
+                            prompt: 'Enter a name for your stash (optional)',
+                            value: ''
+                        }) || 'WIP';
+                        progress.report({ message: 'Stashing changes...' });
+                        await execPromise(`git stash push -m "${stashName}"`);
+                    } else {
+                        vscode.window.showErrorMessage('Please commit your changes or stash them before switching branches.');
+                        return;
+                    }
                 }
 
                 // Checkout and update source branch
