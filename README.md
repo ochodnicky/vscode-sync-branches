@@ -5,8 +5,9 @@ Synch branches is a Visual Studio Code extension designed to facilitate branch s
 ## Features
 
 - Synchronize between specified branches.
+- Stash uncommitted changes
 - Set default source and target branches.
-- Automatically create a branch named like `target-sync` for creating a PR into target branch.
+- Automatically create a branch named like `defaultTargetBranch-targetBranchSuffix` for creating a PR into target branch.
 
 ## Usage
 
@@ -17,6 +18,7 @@ Synch branches is a Visual Studio Code extension designed to facilitate branch s
 
 - `syncBranches.defaultSourceBranch`: Default source branch for syncing. Leave empty to always prompt.
 - `syncBranches.defaultTargetBranch`: Default target branch for syncing. Leave empty to always prompt.
+- `syncBranches.targetBranchSuffix`: Target branch suffix for syncing.
 - `syncBranches.alwaysPromptForBranches`: Always prompt for branches even if defaults are set.
 
 ## Installation
@@ -29,7 +31,7 @@ Synch branches is a Visual Studio Code extension designed to facilitate branch s
 
 ## Requirements
 
-- Visual Studio Code version 1.98.0 or higher.
+- Visual Studio Code version 1.96.2 or higher.
 
 ## Contributing
 
