@@ -2,7 +2,7 @@
   "name": "vscode-sync-branches",
   "displayName": "Sync branches",
   "description": "Sync branches in VSCode",
-  "version": "0.3.9",
+  "version": "0.4.0",
   "publisher": "Ondřej Ochodnický",
   "repository": {
     "type": "git",
@@ -51,6 +51,11 @@
           "type": "boolean",
           "default": true,
           "description": "Always prompt for branches even if defaults are set."
+        },
+        "syncBranches.deleteBeforeSync": {
+          "type": "boolean",
+          "default": false,
+          "description": "Always delete the target branch before syncing."
         }
       }
     }

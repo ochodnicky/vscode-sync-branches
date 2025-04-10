@@ -93,16 +93,39 @@ export function activate(context: vscode.ExtensionContext) {
                     await execPromise(`git checkout -b ${targetBranch}`);
                 }
 
-                // Handle sync branch
-                const syncBranchName = `${targetBranch}${targetBranchSuffix}`;
-                const syncExists = await execPromise(`git rev-parse --verify ${syncBranchName}`).catch(() => false);
-                if (syncExists) {
-                    progress.report({ message: `Deleting existing ${syncBranchName} branch...` });
-                    await execPromise(`git branch -D ${syncBranchName}`);
-                }
+                 // Handle sync branch
+                 const syncBranchName = `${targetBranch}${targetBranchSuffix}`;
+                 const syncExists = await execPromise(`git rev-parse --verify ${syncBranchName}`).catch(() => false);
+                 const deleteBeforeSync = config.get('deleteBeforeSync', false); // Načtení nastavení
 
-                progress.report({ message: `Creating ${syncBranchName} branch...` });
-                await execPromise(`git checkout -b ${syncBranchName}`);
+                 if (syncExists) {
+                     if (deleteBeforeSync) {
+                         progress.report({ message: `Deleting existing ${syncBranchName} branch...` });
+                         await execPromise(`git branch -D ${syncBranchName}`);
+                         progress.report({ message: `Creating ${syncBranchName} branch...` });
+                         await execPromise(`git checkout -b ${syncBranchName}`);
+                     } else {
+                         const deleteResponse = await vscode.window.showQuickPick(['Yes', 'No'], {
+                             placeHolder: `The branch ${syncBranchName} already exists. Do you want to delete it?`
+                         });
+
+                         if (deleteResponse === 'Yes') {
+                             progress.report({ message: `Deleting existing ${syncBranchName} branch...` });
+                             await execPromise(`git branch -D ${syncBranchName}`);
+                             progress.report({ message: `Creating ${syncBranchName} branch...` });
+                             await execPromise(`git checkout -b ${syncBranchName}`);
+                         } else {
+                             vscode.window.showInformationMessage(`Keeping the existing ${syncBranchName} branch.`);
+                             progress.report({ message: `Checking out existing ${syncBranchName} branch...` });
+                             await execPromise(`git checkout ${syncBranchName}`);
+                             progress.report({ message: `Pulling latest changes from ${syncBranchName} branch...` });
+                             await execPromise(`git pull origin ${syncBranchName}`);
+                         }
+                     }
+                 } else {
+                     progress.report({ message: `Creating ${syncBranchName} branch...` });
+                     await execPromise(`git checkout -b ${syncBranchName}`);
+                 }
 
                 progress.report({ message: `Merging ${sourceBranch} into ${syncBranchName}...` });
                 await execPromise(`git merge ${sourceBranch}`).catch(async (error) => {
